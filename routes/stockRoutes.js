@@ -275,30 +275,30 @@ router.delete('/deleteAll', (req, res) => {
   router.post('/login', (req, res) => {
     const { nombre, password } = req.body;
   
+    console.log('Intentando loguear con:', nombre, password); // Registro para depurar
+  
     if (!nombre || !password) {
+      console.error('Faltan datos en la solicitud');
       return res.status(400).json({ error: 'Debe proporcionar un nombre y una contraseña.' });
     }
   
-    // Consulta para verificar el usuario
-    const sqlQuery = `
-      SELECT * FROM usuarios
-      WHERE nombre = ? AND password = ?
-    `;
+    const sqlQuery = `SELECT * FROM usuarios WHERE nombre = ? AND password = ?`;
   
     pool.query(sqlQuery, [nombre, password], (err, results) => {
       if (err) {
-        console.error('Error al consultar la base de datos:', err);
-        return res.status(500).json({ error: 'Error al consultar la base de datos.' });
+        console.error('Error en la base de datos:', err);
+        return res.status(500).json({ error: 'Error interno del servidor.' });
       }
   
+      console.log('Resultados de la consulta:', results);
+  
       if (results.length === 0) {
-        // Usuario no encontrado o credenciales incorrectas
+        console.warn('Credenciales incorrectas');
         return res.status(401).json({ error: 'Credenciales incorrectas.' });
       }
   
-      // Usuario autenticado con éxito
       const user = results[0];
-      res.status(200).json({
+      return res.status(200).json({
         message: 'Inicio de sesión exitoso.',
         user: {
           id: user.id,
@@ -308,5 +308,6 @@ router.delete('/deleteAll', (req, res) => {
       });
     });
   });
+  
   
   module.exports = router;
