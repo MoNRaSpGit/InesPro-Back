@@ -44,8 +44,6 @@ router.post('/', (req, res) => {
       cuantosLlegaron,
       mes01,
       mes02,
-      week,         // Nueva columna
-      observation,  // Nueva columna
     } = item;
 
     const formattedFechaEnvio = fechaEnvio ? fechaEnvio.split('T')[0] : null;
@@ -64,14 +62,12 @@ router.post('/', (req, res) => {
       cuantosLlegaron || 0,
       mes01 || 0,
       mes02 || 0,
-      week || null,          // Nueva columna
-      observation || null,   // Nueva columna
     ]);
   });
 
   const sqlQuery = `
     INSERT INTO stock (
-      codigoInsumo, nombreInsumo, unidad, cantidadMaxima, cantidadPedida, pendiente, numeroCompra, fechaEnvio, fechaLlegada, cuantosLlegaron, mes01, mes02, week, observation
+      codigoInsumo, nombreInsumo, unidad, cantidadMaxima, cantidadPedida, pendiente, numeroCompra, fechaEnvio, fechaLlegada, cuantosLlegaron, mes01, mes02
     ) VALUES ?
   `;
 
@@ -116,6 +112,7 @@ router.post('/', (req, res) => {
     });
   });
 });
+
 
 
 // Nueva ruta para actualización masiva de insumos
