@@ -315,6 +315,39 @@ router.delete('/deleteAll', (req, res) => {
       });
     });
   });
+
+
+ // filtra por semana y bimensual
+  router.get('/filter', (req, res) => {
+    const { bimensual, week } = req.query;
+  
+    if (!bimensual && !week) {
+      return res.status(400).json({ error: 'Debe proporcionar al menos uno de los parámetros: bimensual o week.' });
+    }
+  
+    let sqlQuery = 'SELECT * FROM stock WHERE 1=1'; // Base de la consulta
+    const queryParams = [];
+  
+    if (bimensual) {
+      sqlQuery += ' AND bimensual = ?';
+      queryParams.push(bimensual);
+    }
+  
+    if (week) {
+      sqlQuery += ' AND week = ?';
+      queryParams.push(week);
+    }
+  
+    pool.query(sqlQuery, queryParams, (err, results) => {
+      if (err) {
+        console.error('Error al filtrar los datos:', err);
+        return res.status(500).json({ error: 'Error al filtrar los datos en la base de datos' });
+      }
+  
+      res.status(200).json(results);
+    });
+  });
+  
   
   
   module.exports = router;
