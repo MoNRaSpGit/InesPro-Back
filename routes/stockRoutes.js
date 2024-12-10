@@ -29,7 +29,6 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Debe enviar un array con al menos un registro.' });
   }
 
-  // Creamos el array con todos los valores a insertar
   const values = [];
   stockData.forEach((item) => {
     const {
@@ -45,40 +44,37 @@ router.post('/', (req, res) => {
       cuantosLlegaron,
       mes01,
       mes02,
+      week,         // Nueva columna
+      observation,  // Nueva columna
     } = item;
 
-    // Convertimos las fechas al formato YYYY-MM-DD si vienen en formato ISO
     const formattedFechaEnvio = fechaEnvio ? fechaEnvio.split('T')[0] : null;
     const formattedFechaLlegada = fechaLlegada ? fechaLlegada.split('T')[0] : null;
-
-    // Si `mes01` o `mes02` están vacíos o son null, se asigna el valor 0
-    const validMes01 = parseInt(mes01) || 0;
-    const validMes02 = parseInt(mes02) || 0;
 
     values.push([
       codigoInsumo,
       nombreInsumo,
       unidad,
-      cantidadMaxima || 0, // También aseguramos que cantidadMaxima no sea null
+      cantidadMaxima || 0,
       cantidadPedida || 0,
       pendiente || 0,
       numeroCompra,
-      formattedFechaEnvio,  // Utilizamos la fecha formateada
-      formattedFechaLlegada, // Utilizamos la fecha formateada
+      formattedFechaEnvio,
+      formattedFechaLlegada,
       cuantosLlegaron || 0,
-      validMes01,
-      validMes02,
+      mes01 || 0,
+      mes02 || 0,
+      week || null,          // Nueva columna
+      observation || null,   // Nueva columna
     ]);
   });
 
-  // Consulta para inserción masiva
   const sqlQuery = `
     INSERT INTO stock (
-      codigoInsumo, nombreInsumo, unidad, cantidadMaxima, cantidadPedida, pendiente, numeroCompra, fechaEnvio, fechaLlegada, cuantosLlegaron, mes01, mes02
+      codigoInsumo, nombreInsumo, unidad, cantidadMaxima, cantidadPedida, pendiente, numeroCompra, fechaEnvio, fechaLlegada, cuantosLlegaron, mes01, mes02, week, observation
     ) VALUES ?
   `;
 
-  // Usamos una transacción para asegurarnos de que todo se inserta correctamente o nada se inserta
   pool.getConnection((err, connection) => {
     if (err) {
       console.error('Error al obtener una conexión del pool:', err);
@@ -121,15 +117,16 @@ router.post('/', (req, res) => {
   });
 });
 
+
 // Nueva ruta para actualización masiva de insumos
 router.put('/update', (req, res) => {
-  const updatedStockData = req.body;
+  console.log('Datos recibidos en el backend:', req.body);
 
+  const updatedStockData = req.body;
   if (!Array.isArray(updatedStockData) || updatedStockData.length === 0) {
     return res.status(400).json({ error: 'Debe enviar un array con al menos un registro para actualizar.' });
   }
 
-  // Usamos transacciones para asegurarnos de que todas las actualizaciones se realizan correctamente
   pool.getConnection((err, connection) => {
     if (err) {
       console.error('Error al obtener una conexión del pool:', err);
@@ -145,7 +142,6 @@ router.put('/update', (req, res) => {
         return;
       }
 
-      // Preparamos las consultas para cada fila del array que se desea actualizar
       const queries = updatedStockData.map((item) => {
         return new Promise((resolve, reject) => {
           const {
@@ -157,9 +153,10 @@ router.put('/update', (req, res) => {
             fechaEnvio,
             fechaLlegada,
             cuantosLlegaron,
+            week,
+            observation,
           } = item;
 
-          // Convertimos las fechas al formato YYYY-MM-DD si vienen en formato ISO
           const formattedFechaEnvio = fechaEnvio ? fechaEnvio.split('T')[0] : null;
           const formattedFechaLlegada = fechaLlegada ? fechaLlegada.split('T')[0] : null;
 
@@ -172,7 +169,9 @@ router.put('/update', (req, res) => {
               numeroCompra = ?,
               fechaEnvio = ?,
               fechaLlegada = ?,
-              cuantosLlegaron = ?
+              cuantosLlegaron = ?,
+              week = COALESCE(?, week),
+              observation = COALESCE(?, observation)
             WHERE codigoInsumo = ?
           `;
 
@@ -186,6 +185,8 @@ router.put('/update', (req, res) => {
               formattedFechaEnvio,
               formattedFechaLlegada,
               cuantosLlegaron,
+              week,
+              observation,
               codigoInsumo,
             ],
             (err, result) => {
@@ -198,7 +199,6 @@ router.put('/update', (req, res) => {
         });
       });
 
-      // Ejecutamos todas las consultas
       Promise.all(queries)
         .then(() => {
           connection.commit((err) => {
@@ -225,6 +225,8 @@ router.put('/update', (req, res) => {
     });
   });
 });
+
+
 
 // borra stock
 router.delete('/deleteAll', (req, res) => {
