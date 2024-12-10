@@ -155,8 +155,9 @@ router.put('/update', (req, res) => {
             fechaEnvio,
             fechaLlegada,
             cuantosLlegaron,
-            week,         // Nueva columna
-            observation,  // Nueva columna
+            week,         // Columna semana
+            observation,  // Columna observación
+            bimensual,    // Columna bimensual
           } = item;
 
           const formattedFechaEnvio = fechaEnvio ? fechaEnvio.split('T')[0] : null;
@@ -172,8 +173,9 @@ router.put('/update', (req, res) => {
               fechaEnvio = ?,
               fechaLlegada = ?,
               cuantosLlegaron = ?,
-              week = ?,          -- Nueva columna
-              observation = ?    -- Nueva columna
+              week = ?,          -- Columna semana
+              observation = ?,   -- Columna observación
+              bimensual = ?      -- Columna bimensual
             WHERE codigoInsumo = ?
           `;
 
@@ -187,8 +189,9 @@ router.put('/update', (req, res) => {
               formattedFechaEnvio,
               formattedFechaLlegada,
               cuantosLlegaron,
-              week || null,       // Valor de week
-              observation || '',  // Valor de observation
+              week || null,        // Valor semana
+              observation || '',   // Valor observación
+              bimensual || 'No definido', // Valor bimensual
               codigoInsumo,
             ],
             (err, result) => {
@@ -227,6 +230,7 @@ router.put('/update', (req, res) => {
     });
   });
 });
+
 
 
 // borra stock
