@@ -129,7 +129,6 @@ router.put('/update', (req, res) => {
     return res.status(400).json({ error: 'Debe enviar un array con al menos un registro para actualizar.' });
   }
 
-  // Usamos transacciones para asegurarnos de que todas las actualizaciones se realizan correctamente
   pool.getConnection((err, connection) => {
     if (err) {
       console.error('Error al obtener una conexión del pool:', err);
@@ -145,7 +144,6 @@ router.put('/update', (req, res) => {
         return;
       }
 
-      // Preparamos las consultas para cada fila del array que se desea actualizar
       const queries = updatedStockData.map((item) => {
         return new Promise((resolve, reject) => {
           const {
@@ -157,9 +155,10 @@ router.put('/update', (req, res) => {
             fechaEnvio,
             fechaLlegada,
             cuantosLlegaron,
+            week,         // Nueva columna
+            observation,  // Nueva columna
           } = item;
 
-          // Convertimos las fechas al formato YYYY-MM-DD si vienen en formato ISO
           const formattedFechaEnvio = fechaEnvio ? fechaEnvio.split('T')[0] : null;
           const formattedFechaLlegada = fechaLlegada ? fechaLlegada.split('T')[0] : null;
 
@@ -172,7 +171,9 @@ router.put('/update', (req, res) => {
               numeroCompra = ?,
               fechaEnvio = ?,
               fechaLlegada = ?,
-              cuantosLlegaron = ?
+              cuantosLlegaron = ?,
+              week = ?,          -- Nueva columna
+              observation = ?    -- Nueva columna
             WHERE codigoInsumo = ?
           `;
 
@@ -186,6 +187,8 @@ router.put('/update', (req, res) => {
               formattedFechaEnvio,
               formattedFechaLlegada,
               cuantosLlegaron,
+              week || null,       // Valor de week
+              observation || '',  // Valor de observation
               codigoInsumo,
             ],
             (err, result) => {
@@ -198,7 +201,6 @@ router.put('/update', (req, res) => {
         });
       });
 
-      // Ejecutamos todas las consultas
       Promise.all(queries)
         .then(() => {
           connection.commit((err) => {
@@ -225,6 +227,7 @@ router.put('/update', (req, res) => {
     });
   });
 });
+
 
 // borra stock
 router.delete('/deleteAll', (req, res) => {
