@@ -344,7 +344,7 @@ router.get('/filter', (req, res) => {
 });
 
 
-router.post('/add', (req, res) => {
+router.post('/add-modification', (req, res) => {
   const {
     codigoInsumo,
     nombreInsumo,
@@ -362,7 +362,7 @@ router.post('/add', (req, res) => {
   } = req.body;
 
   const sqlQuery = `
-    INSERT INTO stock (
+    INSERT INTO stock_modifications (
       codigoInsumo, nombreInsumo, unidad, cantidadMaxima, cantidadPedida,
       pendiente, numeroCompra, fechaEnvio, fechaLlegada, cuantosLlegaron,
       week, bimensual, observation
@@ -389,13 +389,14 @@ router.post('/add', (req, res) => {
     ],
     (err, result) => {
       if (err) {
-        console.error('Error al insertar datos:', err);
-        return res.status(500).json({ error: 'Error al guardar la compra' });
+        console.error('Error al insertar datos modificados:', err);
+        return res.status(500).json({ error: 'Error al guardar los datos modificados' });
       }
-      res.status(201).json({ message: 'Compra registrada exitosamente', id: result.insertId });
+      res.status(201).json({ message: 'Datos modificados guardados exitosamente', id: result.insertId });
     }
   );
 });
+
 
 
 
