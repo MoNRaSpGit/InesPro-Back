@@ -235,90 +235,90 @@ router.put('/update', (req, res) => {
 
 // borra stock
 router.delete('/deleteAll', (req, res) => {
-    pool.getConnection((err, connection) => {
+  pool.getConnection((err, connection) => {
+    if (err) {
+      console.error('Error al obtener una conexión del pool:', err);
+      res.status(500).json({ error: 'Error al conectarse a la base de datos' });
+      return;
+    }
+
+    connection.beginTransaction((err) => {
       if (err) {
-        console.error('Error al obtener una conexión del pool:', err);
-        res.status(500).json({ error: 'Error al conectarse a la base de datos' });
+        console.error('Error al iniciar la transacción:', err);
+        connection.release();
+        res.status(500).json({ error: 'Error al iniciar la transacción' });
         return;
       }
-  
-      connection.beginTransaction((err) => {
+
+      // Consulta para eliminar todos los registros
+      connection.query('DELETE FROM stock', (err) => {
         if (err) {
-          console.error('Error al iniciar la transacción:', err);
-          connection.release();
-          res.status(500).json({ error: 'Error al iniciar la transacción' });
-          return;
+          console.error('Error al eliminar los datos de stock:', err);
+          return connection.rollback(() => {
+            connection.release();
+            res.status(500).json({ error: 'Error al eliminar los datos de la base de datos' });
+          });
         }
-  
-        // Consulta para eliminar todos los registros
-        connection.query('DELETE FROM stock', (err) => {
+
+        // Confirmar la transacción para eliminar los registros
+        connection.commit((err) => {
           if (err) {
-            console.error('Error al eliminar los datos de stock:', err);
+            console.error('Error al hacer commit de la transacción:', err);
             return connection.rollback(() => {
               connection.release();
-              res.status(500).json({ error: 'Error al eliminar los datos de la base de datos' });
+              res.status(500).json({ error: 'Error al hacer commit de la transacción' });
             });
           }
-  
-          // Confirmar la transacción para eliminar los registros
-          connection.commit((err) => {
-            if (err) {
-              console.error('Error al hacer commit de la transacción:', err);
-              return connection.rollback(() => {
-                connection.release();
-                res.status(500).json({ error: 'Error al hacer commit de la transacción' });
-              });
-            }
-  
-            console.log('Todos los datos de la tabla stock han sido eliminados correctamente.');
-            connection.release();
-            res.status(200).json({ message: 'Todos los datos de stock fueron eliminados exitosamente' });
-          });
+
+          console.log('Todos los datos de la tabla stock han sido eliminados correctamente.');
+          connection.release();
+          res.status(200).json({ message: 'Todos los datos de stock fueron eliminados exitosamente' });
         });
       });
     });
   });
+});
 
-  router.post('/login', (req, res) => {
-    const { nombre, password } = req.body;
-  
-    console.log('Intentando loguear con:', nombre, password); // Registro para depurar
-  
-    if (!nombre || !password) {
-      console.error('Faltan datos en la solicitud');
-      return res.status(400).json({ error: 'Debe proporcionar un nombre y una contraseña.' });
+router.post('/login', (req, res) => {
+  const { nombre, password } = req.body;
+
+  console.log('Intentando loguear con:', nombre, password); // Registro para depurar
+
+  if (!nombre || !password) {
+    console.error('Faltan datos en la solicitud');
+    return res.status(400).json({ error: 'Debe proporcionar un nombre y una contraseña.' });
+  }
+
+  const sqlQuery = `SELECT * FROM usuarios WHERE nombre = ? AND password = ?`;
+
+  pool.query(sqlQuery, [nombre, password], (err, results) => {
+    if (err) {
+      console.error('Error en la base de datos:', err);
+      return res.status(500).json({ error: 'Error interno del servidor.' });
     }
-  
-    const sqlQuery = `SELECT * FROM usuarios WHERE nombre = ? AND password = ?`;
-  
-    pool.query(sqlQuery, [nombre, password], (err, results) => {
-      if (err) {
-        console.error('Error en la base de datos:', err);
-        return res.status(500).json({ error: 'Error interno del servidor.' });
-      }
-  
-      console.log('Resultados de la consulta:', results);
-  
-      if (results.length === 0) {
-        console.warn('Credenciales incorrectas');
-        return res.status(401).json({ error: 'Credenciales incorrectas.' });
-      }
-  
-      const user = results[0];
-      return res.status(200).json({
-        message: 'Inicio de sesión exitoso.',
-        user: {
-          id: user.id,
-          nombre: user.nombre,
-          rol: user.rol,
-        },
-      });
+
+    console.log('Resultados de la consulta:', results);
+
+    if (results.length === 0) {
+      console.warn('Credenciales incorrectas');
+      return res.status(401).json({ error: 'Credenciales incorrectas.' });
+    }
+
+    const user = results[0];
+    return res.status(200).json({
+      message: 'Inicio de sesión exitoso.',
+      user: {
+        id: user.id,
+        nombre: user.nombre,
+        rol: user.rol,
+      },
     });
   });
+});
 
 
- // filtra por semana y bimensual
- router.get('/filter', (req, res) => {
+// filtra por semana y bimensual
+router.get('/filter', (req, res) => {
   const { bimensual, week } = req.query;
 
   if (!bimensual || !week) {
@@ -343,7 +343,62 @@ router.delete('/deleteAll', (req, res) => {
   );
 });
 
-  
-  
-  
-  module.exports = router;
+
+router.post('/add', (req, res) => {
+  const {
+    codigoInsumo,
+    nombreInsumo,
+    unidad,
+    cantidadMaxima,
+    cantidadPedida,
+    pendiente,
+    numeroCompra,
+    fechaEnvio,
+    fechaLlegada,
+    cuantosLlegaron,
+    week,
+    bimensual,
+    observation,
+  } = req.body;
+
+  const sqlQuery = `
+    INSERT INTO stock (
+      codigoInsumo, nombreInsumo, unidad, cantidadMaxima, cantidadPedida,
+      pendiente, numeroCompra, fechaEnvio, fechaLlegada, cuantosLlegaron,
+      week, bimensual, observation
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+
+  pool.query(
+    sqlQuery,
+    [
+      codigoInsumo,
+      nombreInsumo,
+      unidad,
+      cantidadMaxima || 0,
+      cantidadPedida || 0,
+      pendiente || 0,
+      numeroCompra || null,
+      fechaEnvio || null,
+      fechaLlegada || null,
+      cuantosLlegaron || 0,
+      week || null,
+      bimensual || null,
+      observation || '',
+    ],
+    (err, result) => {
+      if (err) {
+        console.error('Error al insertar datos:', err);
+        return res.status(500).json({ error: 'Error al guardar la compra' });
+      }
+      res.status(201).json({ message: 'Compra registrada exitosamente', id: result.insertId });
+    }
+  );
+});
+
+
+
+
+
+module.exports = router;
