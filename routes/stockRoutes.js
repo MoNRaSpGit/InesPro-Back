@@ -318,7 +318,7 @@ router.post('/login', (req, res) => {
 
 
 // filtra por semana y bimensual
-router.get('/filter', (req, res) => {
+router.get('/modifications/filter', (req, res) => {
   const { bimensual, week } = req.query;
 
   if (!bimensual || !week) {
@@ -328,7 +328,7 @@ router.get('/filter', (req, res) => {
   pool.query(
     `
     SELECT *
-    FROM stock
+    FROM stock_modifications
     WHERE bimensual LIKE ? AND week = ?
     `,
     [`%${bimensual}%`, week],
@@ -342,6 +342,7 @@ router.get('/filter', (req, res) => {
     }
   );
 });
+
 
 
 router.post('/add-modification', (req, res) => {
